@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
 </head>
+
 <body>
     <div class="container mt-5">
         <div class="row">
@@ -16,18 +18,53 @@
                         Data User
                     </div>
                     <div class="card-body">
+                        <div id="userMsg" class="mt-2"></div>
                         <table class="table table-bordered table-striped">
-                        <thead>
-                        <tr>
-                            <th>No</th>
-                            <th>Nama</th>
-                            <th>Email</th>
-                            <th>Aksi</th>
-                        </tr>
-                        </thead>
-                        <tbody id="userData">
-                        </tbody>
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama</th>
+                                    <th>Email</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userData">
+                            </tbody>
                         </table>
+                    </div>
+                </div>
+                <!-- Modal -->
+                <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="exampleModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="exampleModalLabel">Edit User</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div id="userMsg" class="mt-2"></div>
+                                <input type="hidden" id="edit_id">
+                                <div class="mb-3">
+                                    <label for="" class="form-label">Name</label>
+                                    <input type="text" class="form-control" id="edit_name">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="edit_email">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="" class="form-label">Password</label>
+                                    <input type="text" class="form-control" id="edit_password">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button onclick="updateUser()" type="button" class="btn btn-primary">Save
+                                    changes</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -38,40 +75,150 @@
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
 
-        <script>
-            async function getUsers(){
-                const token = localStorage.getItem('token');
-                const userData = document.getElementById('userData');
+    <script>
+        async function getUsers() {
+            const token = localStorage.getItem('token');
+            const userData = document.getElementById('userData');
 
-                try {
-                    const res = await fetch('http://localhost:8000/api/users', {
-                        method: "GET",
-                        headers: {
-                            "Authorization": "Bearer " + token,
-                            "Content-Type": "application/json"
-                        }
-                    });
-                    const data = await res.json();
-                    console.log({ data, res });
-                    if(res.status === 200){
-                        userData.innerHTML = "";
+            try {
+                const res = await fetch('http://localhost:8000/api/users', {
+                    method: "GET",
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json"
+                    }
+                });
+                const data = await res.json();
+                console.log({ data, res });
+                if (res.status === 200) {
+                    userData.innerHTML = "";
 
-                        data.data.forEach(user => {
-                            userData.innerHTML += `
+                    data.data.forEach(user => {
+                        userData.innerHTML += `
                             <tr>
                                 <td>${user.id}</td>
                                 <td>${user.name}</td>
                                 <td>${user.email}</td>
-                                <td>Edit | Delete</td>
+                                <td> <button class="btn btn-success btn-sm" onclick="openEdit(${user.id})">Edit</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteUser(${user.id})">Delete</button>
+                                </td>
                             </tr>
                             `;
-                        })
-                    }
-                } catch (error) {
-                    
+                    })
                 }
+            } catch (error) {
+                console.log(error)
             }
-            getUsers();
-        </script>
+        }
+
+        async function openEdit(id) {
+            console.log(id);
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch(`http://localhost:8000/api/users/${id}`, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                const data = await res.json();
+                const user = data.data;
+
+
+                document.getElementById('edit_id').value = user.id
+                document.getElementById('edit_name').value = user.name
+                document.getElementById('edit_email').value = user.email
+
+                new bootstrap.Modal(document.getElementById('editModal')).show();
+            } catch (error) {
+
+            }
+        }
+
+        async function updateUser() {
+            const token = localStorage.getItem('token');
+            const msg = document.getElementById('userMsg');
+            msg.innerHTML = "";
+            try {
+                const id = document.getElementById('edit_id').value;
+                const name = document.getElementById('edit_name').value;
+                const email = document.getElementById('edit_email').value;
+                const password = document.getElementById('edit_password').value;
+
+                const res = await fetch(`http://localhost:8000/api/users/${id}`, {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        email: email,
+                        password: password,
+                    })
+                });
+
+                const data = await res.json(); //javascript object notation
+                if (res.status === 200) {
+                    msg.innerHTML = `<div class='alert alert-success'>${data.message}</div>`
+
+                    setTimeout(() => {
+                        msg.innerHTML = ""
+                        bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                        getUsers();
+                    }, 3000)
+                } else if (res.status === 422) {
+                    let errors = "";
+                    for (const key in data.errors) {
+                        errors += `<li>${data.errors[key][0]}</li>`
+                    }
+                    msg.innerHTML = `<div class="alert alert-danger">
+                        <ul>${errors}</ul>
+                    </div>`;
+                } else {
+
+                }
+            } catch (error) {
+
+            }
+
+        }
+        async function deleteUser(id) {
+            const token = localStorage.getItem('token');
+            const msg = document.getElementById('userMsg');
+            msg.innerHTML = ""
+
+            // konfirmasi dulu biar gak kehapus langsung
+            const confirmDelete = confirm("Yakin mau hapus user ini?");
+            if (!confirmDelete) return;
+
+            try {
+                const res = await fetch(`http://localhost:8000/api/users/${id}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                const data = await res.json();
+                if (res.status === 200) {
+                    msg.innerHTML = `<div class="alert alert-success">${data.message}</div>`
+                    getUsers(); // refresh tabel
+                } else {
+                    alert(data.message || "Delete user success");
+                }
+            } catch (error) {
+                console.log(error);
+            }
+        }
+    </script>
+
+    <script>
+        getUsers();
+    </script>
 </body>
+
 </html>
